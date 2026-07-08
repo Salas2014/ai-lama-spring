@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+<input id="input" type="text" placeholder="Your message..." style="width:400px"/>
+<button onclick="send()">Send</button>
+<div id="response" style="margin-top:20px; white-space:pre-wrap; font-family:monospace"></div>
+
+<script>
+    function send() {
+        const message = document.getElementById('input').value;
+        const div = document.getElementById('response');
+        div.textContent = '';
+
+        const es = new EventSource(`/api/v1/chat/stream?message=${encodeURIComponent(message)}`);
+
+        es.onmessage = (e) => {
+            const token = e.data;
+            const last = div.textContent;
+            if (last.length > 0 && !token.startsWith(' ') && !last.endsWith(' ') && !last.endsWith('\n')) {
+                div.textContent += ' ';
+            }
+            div.textContent += token;
+        };
+
+        es.onerror = () => es.close();
+    }
+</script>
+</body>
+</html>

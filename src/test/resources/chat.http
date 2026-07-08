@@ -1,0 +1,12 @@
+### Get default message
+GET http://localhost:8080/api/v1/chat
+
+### Get message with custom prompt
+GET http://localhost:8080/api/v1/chat?message=Who are you?
+
+### Ask something
+GET http://localhost:8080/api/v1/chat?message=What is the capital of France?
+
+### Stream - custom prompt
+    GET http://localhost:8080/api/v1/chat/stream?message=Tell me a short story about a dragon
+Accept: text/event-stream
