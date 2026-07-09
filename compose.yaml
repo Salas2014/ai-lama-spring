@@ -27,12 +27,13 @@ services:
     depends_on:
       - prometheus
 
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+
+  # http://localhost:6333/dashboard#/tutorial
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-vector-db
     ports:
-      - '8081:8080'
+      - "6333:6333" # REST API и Web UI
+      - "6334:6334" # gRPC (Spring AI по умолчанию использует его для скорости)
     volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
+      - ./qdrant_storage:/qdrant/storage
