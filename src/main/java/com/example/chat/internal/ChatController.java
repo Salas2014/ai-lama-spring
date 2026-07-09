@@ -1,10 +1,7 @@
 package com.example.chat.internal;
 
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 @RestController
@@ -25,5 +22,11 @@ public class ChatController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> getAsyncMessage(@RequestParam(defaultValue = "Hello, World!") String message) {
         return chatService.asyncChat(message);
+    }
+
+    // GET /api/v1/chat/rag?message=как настроить кэш?
+    @GetMapping("/rag")
+    public String getRagMessage(@RequestParam String message) {
+        return chatService.ragChat(message);
     }
 }

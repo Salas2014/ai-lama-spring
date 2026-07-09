@@ -350,3 +350,359 @@ ollama pull nomic-embed-text
 | **Spring Boot** | HTTP API — точка входа |
 
 Всё **100% локально** — никаких API ключей, никаких облаков, никаких расходов! 🎉
+
+---
+
+# 🔧 Полные примеры кода
+
+## 📁 Структура модуля `knowledge`
+
+```
+src/main/java/com/example/
+    knowledge/
+        internal/
+            KnowledgeController.java
+            KnowledgeService.java
+    chat/
+        internal/
+            ChatController.java   ← добавляем /rag эндпоинт
+            ChatService.java      ← добавляем ragChat()
+```
+
+---
+
+## 1️⃣ KnowledgeService.java
+
+```java
+package com.example.knowledge.internal;
+
+import org.springframework.ai.document.Document;
+import org.springframework.ai.reader.TextReader;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class KnowledgeService {
+
+    private final VectorStore vectorStore;
+
+    public KnowledgeService(VectorStore vectorStore) {
+        this.vectorStore = vectorStore;
+    }
+
+    // Вариант 1: загрузка списка строк через JSON body
+    public void ingest(List<String> texts) {
+        List<Document> documents = texts.stream()
+                .map(Document::new)
+                .toList();
+        vectorStore.add(documents);
+    }
+
+    // Вариант 2: загрузка .txt файла через multipart upload
+    public void ingestFile(MultipartFile file) throws IOException {
+        String text = new String(file.getBytes(), StandardCharsets.UTF_8);
+        Document document = new Document(
+                text,
+                Map.of("filename", file.getOriginalFilename())  // метаданные → payload в Qdrant
+        );
+        vectorStore.add(List.of(document));
+    }
+
+    // Вариант 3: загрузка .txt из classpath (src/main/resources/)
+    public void ingestResource(Resource resource) {
+        TextReader reader = new TextReader(resource);
+        reader.getCustomMetadata().put("source", resource.getFilename());
+        List<Document> documents = reader.get();
+        vectorStore.add(documents);
+    }
+
+    // Поиск похожих документов
+    public List<Document> search(String query, int topK) {
+        return vectorStore.similaritySearch(
+                SearchRequest.builder()
+                        .query(query)
+                        .topK(topK)
+                        .build()
+        );
+    }
+}
+```
+
+---
+
+## 2️⃣ KnowledgeController.java
+
+```java
+package com.example.knowledge.internal;
+
+import org.springframework.ai.document.Document;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/v1/knowledge")
+public class KnowledgeController {
+
+    private final KnowledgeService knowledgeService;
+
+    public KnowledgeController(KnowledgeService knowledgeService) {
+        this.knowledgeService = knowledgeService;
+    }
+
+    // POST /api/v1/knowledge/ingest
+    // Body: ["Spring Boot это фреймворк", "Redis это кэш", ...]
+    @PostMapping("/ingest")
+    public Map<String, Object> ingest(@RequestBody List<String> texts) {
+        knowledgeService.ingest(texts);
+        return Map.of("status", "ok", "count", texts.size());
+    }
+
+    // POST /api/v1/knowledge/ingest/file
+    // Multipart: file=@myfile.txt
+    @PostMapping(value = "/ingest/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Map<String, String> ingestFile(@RequestParam("file") MultipartFile file) throws IOException {
+        knowledgeService.ingestFile(file);
+        return Map.of(
+                "status", "ok",
+                "filename", file.getOriginalFilename(),
+                "size", file.getSize() + " bytes"
+        );
+    }
+
+    // GET /api/v1/knowledge/search?query=как настроить Redis&topK=3
+    @GetMapping("/search")
+    public List<String> search(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "3") int topK
+    ) {
+        return knowledgeService.search(query, topK)
+                .stream()
+                .map(Document::getText)
+                .toList();
+    }
+}
+```
+
+---
+
+## 3️⃣ ChatService.java — добавляем ragChat()
+
+```java
+package com.example.chat.internal;
+
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class ChatService {
+
+    private final ChatClient chatClient;
+    private final VectorStore vectorStore;
+
+    public ChatService(ChatClient.Builder builder, VectorStore vectorStore) {
+        this.chatClient = builder.build();
+        this.vectorStore = vectorStore;
+    }
+
+    public String chat(String message) {
+        return chatClient.prompt()
+                .user(message)
+                .call()
+                .content();
+    }
+
+    public Flux<String> asyncChat(String message) {
+        return chatClient.prompt()
+                .user(message)
+                .stream()
+                .content();
+    }
+
+    // RAG: ищет контекст в Qdrant, затем отвечает с его учётом
+    public String ragChat(String userQuestion) {
+        List<Document> context = vectorStore.similaritySearch(
+                SearchRequest.builder()
+                        .query(userQuestion)
+                        .topK(3)
+                        .build()
+        );
+
+        if (context.isEmpty()) {
+            return chat(userQuestion);  // если контекста нет — обычный чат
+        }
+
+        String contextText = context.stream()
+                .map(Document::getText)
+                .collect(Collectors.joining("\n---\n"));
+
+        String prompt = """
+                Используй только следующий контекст для ответа.
+                Если ответа нет в контексте — так и скажи.
+                
+                Контекст:
+                %s
+                
+                Вопрос: %s
+                """.formatted(contextText, userQuestion);
+
+        return chatClient.prompt()
+                .user(prompt)
+                .call()
+                .content();
+    }
+}
+```
+
+---
+
+## 4️⃣ ChatController.java — добавляем /rag
+
+```java
+package com.example.chat.internal;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+
+@RestController
+@RequestMapping("/api/v1/chat")
+public class ChatController {
+
+    private final ChatService chatService;
+
+    public ChatController(ChatService chatService) {
+        this.chatService = chatService;
+    }
+
+    @GetMapping
+    public String getMessage(@RequestParam(defaultValue = "Hello, World!") String message) {
+        return chatService.chat(message);
+    }
+
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> getAsyncMessage(@RequestParam(defaultValue = "Hello, World!") String message) {
+        return chatService.asyncChat(message);
+    }
+
+    // GET /api/v1/chat/rag?message=как настроить кэш?
+    @GetMapping("/rag")
+    public String getRagMessage(@RequestParam String message) {
+        return chatService.ragChat(message);
+    }
+}
+```
+
+---
+
+## 5️⃣ Автозагрузка .txt при старте (опционально)
+
+Положи файлы в `src/main/resources/knowledge/*.txt` и добавь компонент:
+
+```java
+package com.example.knowledge.internal;
+
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+
+@Component
+public class KnowledgeLoader {
+
+    private final KnowledgeService knowledgeService;
+
+    public KnowledgeLoader(KnowledgeService knowledgeService) {
+        this.knowledgeService = knowledgeService;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void loadOnStartup() throws IOException {
+        var resolver = new PathMatchingResourcePatternResolver();
+        Resource[] resources = resolver.getResources("classpath:knowledge/*.txt");
+
+        for (Resource resource : resources) {
+            knowledgeService.ingestResource(resource);
+            System.out.println("✅ Загружен: " + resource.getFilename());
+        }
+    }
+}
+```
+
+---
+
+## 📄 Какие форматы файлов поддерживаются?
+
+| Формат | Класс Spring AI | Зависимость |
+|---|---|---|
+| `.txt` | `TextReader` | ✅ встроено |
+| `.md` | `TextReader` | ✅ встроено (читает как plain text) |
+| `.json` | `JsonReader` | ✅ встроено |
+| `.pdf` | `PagePdfDocumentReader` | `spring-ai-pdf-document-reader` |
+| `.pdf`, `.docx`, `.html` | `TikaDocumentReader` | `spring-ai-tika-document-reader` |
+
+> Для `.txt` никаких дополнительных зависимостей не нужно — `TextReader` уже в Spring AI!
+
+---
+
+## 🧪 HTTP тесты (добавить в chat.http)
+
+```http
+### Загрузить строки через JSON
+POST http://localhost:8888/api/v1/knowledge/ingest
+Content-Type: application/json
+
+["Spring Boot это фреймворк для Java приложений",
+ "Redis это in-memory база данных, используется как кэш",
+ "Qdrant это векторная база данных написанная на Rust",
+ "Docker это инструмент для контейнеризации приложений"]
+
+###
+
+### Поиск по базе знаний
+GET http://localhost:8888/api/v1/knowledge/search?query=что такое кэш&topK=2
+
+###
+
+### RAG чат — ответ на основе загруженных документов
+GET http://localhost:8888/api/v1/chat/rag?message=что такое Redis?
+
+###
+
+### Обычный чат (без контекста из Qdrant)
+GET http://localhost:8888/api/v1/chat?message=Привет!
+```
+
+---
+
+## 🔍 Проверить данные в Qdrant Web UI
+
+После загрузки открой **http://localhost:6333/dashboard** → Collections → `knowledge` → Points.
+
+Каждый документ виден как точка (point) с:
+- `vector` — числовой вектор от nomic-embed-text
+- `payload` — метаданные (filename, source, etc.)
+- `text` — оригинальный текст документа
+
