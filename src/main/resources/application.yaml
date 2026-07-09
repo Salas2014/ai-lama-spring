@@ -6,6 +6,15 @@ spring:
       base-url: http://localhost:11434
       chat:
         model: llama3.2
+      embedding:
+        model: nomic-embed-text
+
+    vectorstore:
+      qdrant:
+        host: localhost
+        port: 6334              # gRPC порт (быстрее чем REST)
+        collection-name: knowledge  # имя коллекции в Qdrant
+        initialize-schema: true     # автоматически создать коллекцию
 
 management:
   endpoints:
@@ -18,3 +27,6 @@ management:
   metrics:
     tags:
       application: "${spring.application.name}"
+
+server:
+  port: 8888
