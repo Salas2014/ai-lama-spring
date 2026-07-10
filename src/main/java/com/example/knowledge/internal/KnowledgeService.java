@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class KnowledgeService {
@@ -35,7 +36,7 @@ public class KnowledgeService {
         String text = new String(file.getBytes(), StandardCharsets.UTF_8);
         Document document = new Document(
                 text,
-                Map.of("filename", file.getOriginalFilename())
+                Map.of("filename", Objects.requireNonNull(file.getOriginalFilename()))
         );
         vectorStore.add(List.of(document));
     }
@@ -43,9 +44,21 @@ public class KnowledgeService {
     // Вариант 3: загрузка .txt из classpath (src/main/resources/)
     public void ingestResource(Resource resource) {
         TextReader reader = new TextReader(resource);
-        reader.getCustomMetadata().put("source", resource.getFilename());
+        reader.getCustomMetadata().put("source", Objects.requireNonNull(resource.getFilename()));
         List<Document> documents = reader.get();
         vectorStore.add(documents);
+    }
+
+    // Проверка: есть ли уже документы с данным именем файла
+    public boolean existsBySource(String filename) {
+        List<Document> results = vectorStore.similaritySearch(
+                SearchRequest.builder()
+                        .query(filename)
+                        .topK(1)
+                        .filterExpression("source == \"" + filename + "\"")
+                        .build()
+        );
+        return !results.isEmpty();
     }
 
     // Поиск похожих документов
