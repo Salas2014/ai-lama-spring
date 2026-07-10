@@ -46,7 +46,8 @@ public class ChatService {
         );
 
         if (context.isEmpty()) {
-            return chat(userQuestion);
+            //return chat(userQuestion);
+            throw new RuntimeException("Контекст не найден в базе знаний. Пожалуйста, уточните вопрос или добавьте контекст.");
         }
 
         String contextText = context.stream()
