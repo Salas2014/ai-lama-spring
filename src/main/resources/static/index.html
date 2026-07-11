@@ -2,27 +2,55 @@
 <html>
 <body>
 <input id="input" type="text" placeholder="Your message..." style="width:400px"/>
-<button onclick="send()">Send</button>
+<button onclick="send()">Send (stream)</button>
+<button onclick="sendRag()">Send (RAG)</button>
 <div id="response" style="margin-top:20px; white-space:pre-wrap; font-family:monospace"></div>
 
 <script>
+    // keep a single EventSource open at a time
+    let currentEs = null;
+
+    function closeCurrent() {
+        if (currentEs) {
+            try { currentEs.close(); } catch (e) { /* ignore */ }
+            currentEs = null;
+        }
+    }
+
     function send() {
+        // stream endpoint (existing behavior)
         const message = document.getElementById('input').value;
         const div = document.getElementById('response');
         div.textContent = '';
 
-        const es = new EventSource(`/api/v1/chat/stream?message=${encodeURIComponent(message)}`);
+        closeCurrent();
+        currentEs = new EventSource(`/api/v1/chat/stream?message=${encodeURIComponent(message)}`);
 
-        es.onmessage = (e) => {
+        currentEs.onmessage = (e) => {
             const token = e.data;
-            const last = div.textContent;
-            if (last.length > 0 && !token.startsWith(' ') && !last.endsWith(' ') && !last.endsWith('\n')) {
-                div.textContent += ' ';
-            }
+            // append token as-is; let the server/model control spaces to avoid broken words
             div.textContent += token;
         };
 
-        es.onerror = () => es.close();
+        currentEs.onerror = () => closeCurrent();
+    }
+
+    function sendRag() {
+        // RAG endpoint: uses the same SSE pattern but hits /rag
+        const message = document.getElementById('input').value;
+        const div = document.getElementById('response');
+        div.textContent = '';
+
+        closeCurrent();
+        currentEs = new EventSource(`/api/v1/chat/rag?message=${encodeURIComponent(message)}`);
+
+        currentEs.onmessage = (e) => {
+            const token = e.data;
+            // append token as-is; let the server/model control spaces to avoid broken words
+            div.textContent += token;
+        };
+
+        currentEs.onerror = () => closeCurrent();
     }
 </script>
 </body>
