@@ -10,7 +10,7 @@ scrape_configs:
         labels:
           application: 'ai-lama-spring'
 
-  - job_name: 'ollama'
-    metrics_path: '/metrics'
-    static_configs:
-      - targets: [ 'ollama:11434' ]
+#  - job_name: 'ollama'
+#    metrics_path: '/metrics'
+#    static_configs:
+#      - targets: [ 'ollama:11434' ]

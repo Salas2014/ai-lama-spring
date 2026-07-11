@@ -1,7 +1,6 @@
 package com.example.knowledge.internal;
 
 import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.TextReader;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.Resource;
@@ -34,19 +33,47 @@ public class KnowledgeService {
     // Вариант 2: загрузка .txt файла через multipart upload
     public void ingestFile(MultipartFile file) throws IOException {
         String text = new String(file.getBytes(), StandardCharsets.UTF_8);
-        Document document = new Document(
-                text,
-                Map.of("filename", Objects.requireNonNull(file.getOriginalFilename()))
-        );
-        vectorStore.add(List.of(document));
+        String filename = Objects.requireNonNull(file.getOriginalFilename());
+        List<Document> chunks = splitAndCreateDocuments(text, filename);
+        vectorStore.add(chunks);
     }
 
     // Вариант 3: загрузка .txt из classpath (src/main/resources/)
-    public void ingestResource(Resource resource) {
-        TextReader reader = new TextReader(resource);
-        reader.getCustomMetadata().put("source", Objects.requireNonNull(resource.getFilename()));
-        List<Document> documents = reader.get();
+    public void ingestResource(Resource resource) throws IOException {
+        String filename = Objects.requireNonNull(resource.getFilename());
+        String text = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
+        // Разбиваем текст на чанки
+        List<Document> chunkedDocuments = splitAndCreateDocuments(text, filename);
+        vectorStore.add(chunkedDocuments);
+    }
+
+    // Загрузка отдельного чанка (для KnowledgeLoader)
+    public void ingestChunk(List<Document> documents) {
         vectorStore.add(documents);
+    }
+
+    // Вспомогательный метод для разбиения текста на чанки
+    private List<Document> splitAndCreateDocuments(String text, String source) {
+        // Разбиваем текст на чанки по ~2000 символов с перекрытием
+        int chunkSize = 2000;
+        int overlap = 200;
+        List<String> chunks = new java.util.ArrayList<>();
+
+        int start = 0;
+        while (start < text.length()) {
+            int end = Math.min(start + chunkSize, text.length());
+            chunks.add(text.substring(start, end));
+            start = end - overlap;
+            if (start <= 0) break;
+        }
+
+        return chunks.stream()
+                .map(chunk -> new Document(
+                        chunk,
+                        Map.of("source", source)
+                ))
+                .toList();
     }
 
     // Проверка: есть ли уже документы с данным именем файла

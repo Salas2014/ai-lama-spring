@@ -1,30 +1,35 @@
 ### Test 1: Get default message
-GET http://localhost:8080/api/v1/chat
+GET http://localhost:8888/api/v1/chat
 
 ### Test 2: Get message with custom prompt
-GET http://localhost:8080/api/v1/chat?message=Who are you?
+GET http://localhost:8888/api/v1/chat?message=Who are you?
 
 ### Test 3: Ask a question
-GET http://localhost:8080/api/v1/chat?message=What is the capital of France?
+GET http://localhost:8888/api/v1/chat?message=What is the capital of France?
 
 ### Test 4: Another question
-GET http://localhost:8080/api/v1/chat?message=What is 2 + 2?
+GET http://localhost:8888/api/v1/chat?message=What is 2 + 2?
 
 ### Test 5: Creative prompt
-GET http://localhost:8080/api/v1/chat?message=Tell me a joke
+GET http://localhost:8888/api/v1/chat?message=Tell me a joke
 
 ### Test 6: Stream - custom prompt
-GET http://localhost:8080/api/v1/chat/stream?message=Tell me a short story about a dragon
+GET http://localhost:8888/api/v1/chat/stream?message=Tell me a short story about a dragon
 Accept: text/event-stream
 
 ### Test 7: Stream - another creative prompt
-GET http://localhost:8080/api/v1/chat/stream?message=Write a poem about the ocean
+GET http://localhost:8888/api/v1/chat/stream?message=Write a poem about the ocean
 Accept: text/event-stream
 
 ### Test 8: Stream - technical question
-GET http://localhost:8080/api/v1/chat/stream?message=How does machine learning work?
+GET http://localhost:8888/api/v1/chat/stream?message=How does machine learning work?
 Accept: text/event-stream
 
 ### Test 9: Stream - default message
-GET http://localhost:8080/api/v1/chat/stream
+GET http://localhost:8888/api/v1/chat/stream
+Accept: text/event-stream
+
+
+#### Test 10: Stream - won rag
+GET http://localhost:8888/api/v1/chat/rag?message=Почему нельзя обновлять сразу много записей?
 Accept: text/event-stream

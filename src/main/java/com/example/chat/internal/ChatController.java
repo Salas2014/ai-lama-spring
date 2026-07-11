@@ -25,8 +25,8 @@ public class ChatController {
     }
 
     // GET /api/v1/chat/rag?message=как настроить кэш?
-    @GetMapping("/rag")
-    public String getRagMessage(@RequestParam String message) {
+    @GetMapping(value = "/rag", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> getRagMessage(@RequestParam String message) {
         return chatService.ragChat(message);
     }
 }

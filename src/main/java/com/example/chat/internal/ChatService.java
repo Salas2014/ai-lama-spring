@@ -36,7 +36,7 @@ public class ChatService {
     }
 
     // RAG: ищет контекст в Qdrant, затем отвечает с его учётом
-    public String ragChat(String userQuestion) {
+    public Flux<String> ragChat(String userQuestion) {
         List<Document> context = vectorStore.similaritySearch(
                 SearchRequest.builder()
                         .query(userQuestion)
@@ -66,7 +66,7 @@ public class ChatService {
 
         return chatClient.prompt()
                 .user(prompt)
-                .call()
+                .stream()
                 .content();
     }
 }

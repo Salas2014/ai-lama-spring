@@ -1,7 +1,6 @@
 services:
   ollama:
     image: 'ollama/ollama:latest'
-    container_name: ollama  # Добавили имя, чтобы к нему было проще обращаться
     ports:
       - '11434:11434'
     environment:
