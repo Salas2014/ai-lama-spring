@@ -30,6 +30,19 @@ GET http://localhost:8888/api/v1/chat/stream
 Accept: text/event-stream
 
 
-#### Test 10: Stream - won rag
-GET http://localhost:8888/api/v1/chat/rag?message=Почему нельзя обновлять сразу много записей?
+#### Test 10: Stream - ollama chat
+GET http://localhost:8888/api/v1/ollama/chat?message=Почему нельзя обновлять сразу много записей?
+
+#### Test 11: Stream - ollama chat stream
+GET http://localhost:8888/api/v1/ollama/chat/stream?message=Почему нельзя обновлять сразу много записей?
 Accept: text/event-stream
+
+#### Test 12: Ollama embed
+GET http://localhost:8888/api/v1/ollama/embed?input=Почему нельзя обновлять сразу много записей?
+
+#### Test 13: Stream - ollama embed async
+GET http://localhost:8888/api/v1/ollama/embed/async?input=Почему нельзя обновлять сразу много записей?
+Accept: text/event-stream
+
+#### Test 10: Stream - ollama embed
+GET http://localhost:8888/api/v1/ollama/chat/message=Почему нельзя обновлять сразу много записей?

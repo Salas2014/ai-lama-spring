@@ -1,5 +1,6 @@
 package com.example.chat.internal;
 
+import com.example.chat.internal.ollama.IChatService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -8,9 +9,9 @@ import reactor.core.publisher.Flux;
 @RequestMapping("/api/v1/chat")
 public class ChatController {
 
-    private final ChatService chatService;
+    private final IChatService chatService;
 
-    public ChatController(ChatService chatService) {
+    public ChatController(IChatService chatService) {
         this.chatService = chatService;
     }
 

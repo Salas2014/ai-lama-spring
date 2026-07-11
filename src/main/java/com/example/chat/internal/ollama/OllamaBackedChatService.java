@@ -1,6 +1,5 @@
-package com.example.chat.internal;
+package com.example.chat.internal.ollama;
 
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -10,44 +9,46 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * ChatService implementation backed by OllamaClient instead of Spring AI ChatClient.
+ * Implements the same interface and logic as original ChatService, but uses AiClientInter (OllamaClient).
+ */
 @Service
-public class ChatService {
+public class OllamaBackedChatService implements IChatService {
 
-    private final ChatClient chatClient;
+    private final AiClientInter ollamaClient;
     private final VectorStore vectorStore;
 
-    public ChatService(ChatClient.Builder builder, VectorStore vectorStore) {
-        this.chatClient = builder.build();
+    public OllamaBackedChatService(AiClientInter ollamaClient, VectorStore vectorStore) {
+        this.ollamaClient = ollamaClient;
         this.vectorStore = vectorStore;
     }
 
+    @Override
     public String chat(String message) {
-        return chatClient.prompt()
-                .user(message)
-                .call()
-                .content();
+        return ollamaClient.chat(message).block();
     }
 
+    @Override
     public Flux<String> asyncChat(String message) {
-        return chatClient.prompt()
-                .user(message)
-                .stream()
-                .content();
+        return ollamaClient.chat(message)
+                .flatMapMany(Flux::just);
     }
 
-    // RAG: ищет контекст в Qdrant, затем отвечает с его учётом
+    @Override
     public Flux<String> ragChat(String userQuestion) {
         List<Document> context = vectorStore.similaritySearch(
                 SearchRequest.builder()
                         .query(userQuestion)
                         .topK(3)
-                        .similarityThreshold(0.7) // только если схожесть >= 70%, иначе не возвращать
+                        .similarityThreshold(0.7)
                         .build()
         );
 
         if (context.isEmpty()) {
-            //return chat(userQuestion);
-            throw new RuntimeException("Контекст не найден в базе знаний. Пожалуйста, уточните вопрос или добавьте контекст.");
+            return Flux.error(new RuntimeException(
+                    "Контекст не найден в базе знаний. Пожалуйста, уточните вопрос или добавьте контекст."
+            ));
         }
 
         String contextText = context.stream()
@@ -64,9 +65,8 @@ public class ChatService {
                 Вопрос: %s
                 """.formatted(contextText, userQuestion);
 
-        return chatClient.prompt()
-                .user(prompt)
-                .stream()
-                .content();
+        return ollamaClient.chat(prompt)
+                .flatMapMany(Flux::just);
     }
 }
+
