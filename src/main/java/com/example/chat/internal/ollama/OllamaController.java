@@ -1,5 +1,6 @@
 package com.example.chat.internal.ollama;
 
+import com.example.chat.internal.AiClientInter;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;

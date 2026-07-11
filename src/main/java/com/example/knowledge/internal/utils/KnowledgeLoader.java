@@ -28,9 +28,15 @@ public class KnowledgeLoader {
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    public void loadOnStartup() throws IOException {
+    public void loadOnStartup() {
         var resolver = new PathMatchingResourcePatternResolver();
-        Resource[] resources = resolver.getResources("classpath:knowledge/*.txt");
+        Resource[] resources = null;
+        try {
+            resources = resolver.getResources("classpath:knowledge/*.txt");
+        } catch (IOException e) {
+            log.info("Ошибка при загрузке ресурсов из classpath:knowledge/*.txt", e);
+            return;
+        }
 
         for (Resource resource : resources) {
             String filename = resource.getFilename();
@@ -67,6 +73,9 @@ public class KnowledgeLoader {
 
                 }
                 knowledgeService.ingestChunk(chunkedDocuments);
+            } catch (IOException e) {
+                log.info("Ошибка при чтении файла: {}", filename, e);
+                return;
             }
             log.info("✅ Успешно загружен и разделен на {} чанков: {}", chunkIndex + 1, filename);
         }

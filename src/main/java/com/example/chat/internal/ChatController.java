@@ -1,6 +1,5 @@
 package com.example.chat.internal;
 
-import com.example.chat.internal.ollama.IChatService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;

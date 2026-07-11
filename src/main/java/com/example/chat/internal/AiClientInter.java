@@ -1,4 +1,4 @@
-package com.example.chat.internal.ollama;
+package com.example.chat.internal;
 
 import reactor.core.publisher.Mono;
 

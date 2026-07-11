@@ -1,6 +1,7 @@
 package com.example.chat.internal.ollama;
 
-import com.example.config.OllamaProperties;
+import com.example.chat.internal.AiClientInter;
+import com.example.chat.internal.config.OllamaProperties;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;

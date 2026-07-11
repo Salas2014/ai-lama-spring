@@ -1,8 +1,11 @@
 package com.example.chat.internal.ollama;
 
+import com.example.chat.internal.AiClientInter;
+import com.example.chat.internal.IChatService;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 

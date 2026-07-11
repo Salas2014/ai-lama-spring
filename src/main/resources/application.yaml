@@ -9,6 +9,11 @@ spring:
       embedding:
         model: nomic-embed-text
 
+    google:
+      genai:
+        api-key: ${GOOGLE_GEMINI_API_KEY:}
+        model: models/gemini-1.5-pro
+
     vectorstore:
       qdrant:
         host: localhost
