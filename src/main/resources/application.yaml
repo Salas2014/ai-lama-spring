@@ -1,6 +1,9 @@
 spring:
   application:
     name: ai-lama-spring
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
   ai:
     ollama:
       base-url: http://localhost:11434
@@ -12,7 +15,7 @@ spring:
     google:
       genai:
         api-key: ${GOOGLE_GEMINI_API_KEY:}
-        model: models/gemini-1.5-pro
+        model: gemini-2.0-flash
 
     vectorstore:
       qdrant:

@@ -1,7 +1,7 @@
-package com.example.chat.internal.ollama;
+package com.example.chat.internal.gemini;
 
+import com.example.chat.internal.config.GeminiProperties;
 import com.example.chat.internal.AiClientInter;
-import com.example.chat.internal.config.OllamaProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -9,31 +9,37 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 
 @Component
-@Qualifier("ollamaClient")
-public class OllamaClient implements AiClientInter {
+@Qualifier("geminiClient")
+public class GeminiClient implements AiClientInter {
 
     private final WebClient webClient;
-    private final String chatModelName;
-    private final String embeddingModelName;
+    private final String model;
+    private final String apiKey;
 
-    public OllamaClient(WebClient ollamaWebClient,
-                        OllamaProperties ollamaProperties) {
-        this.webClient = ollamaWebClient;
-        this.chatModelName = ollamaProperties.getChat().getModel();
-        this.embeddingModelName = ollamaProperties.getEmbedding().getModel();
+    public GeminiClient(WebClient geminiWebClient,
+                        GeminiProperties properties) {
+        this.webClient = geminiWebClient;
+        this.model = properties.getModel();
+        this.apiKey = properties.getApiKey();
     }
 
+    @Override
     public Mono<String> chat(String message) {
         Map<String, Object> payload = Map.of(
-                "model", chatModelName,
-                "messages", new Object[]{Map.of("role", "user", "content", message)}
+                "contents", List.of(
+                        Map.of("parts", List.of(Map.of("text", message)))
+                )
         );
 
         return webClient.post()
-                .uri(uriBuilder -> uriBuilder.pathSegment("api", "chat").build())
+                .uri(uriBuilder -> uriBuilder
+                        .path("/models/" + model + ":generateContent")
+                        .queryParam("key", apiKey)
+                        .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(payload))
@@ -41,14 +47,18 @@ public class OllamaClient implements AiClientInter {
                 .bodyToMono(String.class);
     }
 
+    @Override
     public Mono<String> embed(String input) {
         Map<String, Object> payload = Map.of(
-                "model", embeddingModelName,
-                "input", input
+                "model", model,
+                "content", Map.of("parts", List.of(Map.of("text", input)))
         );
 
         return webClient.post()
-                .uri(uriBuilder -> uriBuilder.pathSegment("api", "embed").build())
+                .uri(uriBuilder -> uriBuilder
+                        .path("/models/" + model + ":embedContent")
+                        .queryParam("key", apiKey)
+                        .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(payload))
@@ -56,11 +66,16 @@ public class OllamaClient implements AiClientInter {
                 .bodyToMono(String.class);
     }
 
+    @Override
     public Mono<String> listModels() {
         return webClient.get()
-                .uri(uriBuilder -> uriBuilder.pathSegment("api", "models").build())
+                .uri(uriBuilder -> uriBuilder
+                        .path("/models")
+                        .queryParam("key", apiKey)
+                        .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(String.class);
     }
 }
+

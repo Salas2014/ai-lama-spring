@@ -17,12 +17,12 @@ import java.util.stream.Collectors;
  * Implements the same interface and logic as original ChatService, but uses AiClientInter (OllamaClient).
  */
 @Service
-public class OllamaBackedChatService implements IChatService {
+public class ChatService implements IChatService {
 
     private final AiClientInter ollamaClient;
     private final VectorStore vectorStore;
 
-    public OllamaBackedChatService(AiClientInter ollamaClient, VectorStore vectorStore) {
+    public ChatService(@Qualifier("geminiClient") AiClientInter ollamaClient, VectorStore vectorStore) {
         this.ollamaClient = ollamaClient;
         this.vectorStore = vectorStore;
     }
@@ -72,4 +72,3 @@ public class OllamaBackedChatService implements IChatService {
                 .flatMapMany(Flux::just);
     }
 }
-
