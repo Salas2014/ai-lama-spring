@@ -1,13 +1,19 @@
 package com.example.chat.internal.gemini;
 
+
 import com.example.chat.internal.config.GeminiProperties;
 import com.example.chat.internal.AiClientInter;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
+
+import java.time.Duration;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +31,7 @@ public class GeminiClient implements AiClientInter {
         this.webClient = geminiWebClient;
         this.model = properties.getModel();
         this.apiKey = properties.getApiKey();
+        System.out.println("GeminiClient initialized with model: " + model + " and API key: " + apiKey);
     }
 
     @Override
@@ -44,7 +51,14 @@ public class GeminiClient implements AiClientInter {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(payload))
                 .retrieve()
-                .bodyToMono(String.class);
+                .onStatus(HttpStatusCode::isError, resp ->
+                        resp.bodyToMono(String.class).flatMap(body ->
+                                Mono.error(new RuntimeException("Gemini error " + resp.statusCode() + ": " + body))))
+                .bodyToMono(String.class)
+                .retryWhen(Retry.backoff(5, Duration.ofMillis(500))
+                        .maxBackoff(Duration.ofSeconds(30))
+                        .filter(throwable -> throwable instanceof WebClientResponseException.TooManyRequests)
+                        .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure()));
     }
 
     @Override
@@ -63,7 +77,11 @@ public class GeminiClient implements AiClientInter {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(payload))
                 .retrieve()
-                .bodyToMono(String.class);
+                .bodyToMono(String.class)
+                .retryWhen(Retry.backoff(5, Duration.ofMillis(500))
+                        .maxBackoff(Duration.ofSeconds(30))
+                        .filter(throwable -> throwable instanceof WebClientResponseException.TooManyRequests)
+                        .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure()));
     }
 
     @Override
@@ -75,7 +93,11 @@ public class GeminiClient implements AiClientInter {
                         .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
-                .bodyToMono(String.class);
+                .bodyToMono(String.class)
+                .retryWhen(Retry.backoff(5, Duration.ofMillis(500))
+                        .maxBackoff(Duration.ofSeconds(30))
+                        .filter(throwable -> throwable instanceof WebClientResponseException.TooManyRequests)
+                        .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure()));
     }
 }
 

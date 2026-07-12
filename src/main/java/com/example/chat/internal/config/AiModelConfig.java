@@ -24,7 +24,6 @@ public class AiModelConfig {
         return WebClient.builder()
                 .baseUrl("https://generativelanguage.googleapis.com/v1beta")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .defaultUriVariables(java.util.Map.of("key", properties.getApiKey()))
                 .build();
     }
 }
