@@ -19,22 +19,22 @@ import java.util.stream.Collectors;
 @Service
 public class ChatService implements IChatService {
 
-    private final AiClientInter ollamaClient;
+    private final AiClientInter chatClient;
     private final VectorStore vectorStore;
 
-    public ChatService(@Qualifier("geminiClient") AiClientInter ollamaClient, VectorStore vectorStore) {
-        this.ollamaClient = ollamaClient;
+    public ChatService(@Qualifier("geminiClient") AiClientInter chatClient, VectorStore vectorStore) {
+        this.chatClient = chatClient;
         this.vectorStore = vectorStore;
     }
 
     @Override
     public String chat(String message) {
-        return ollamaClient.chat(message).block();
+        return chatClient.chat(message).block();
     }
 
     @Override
     public Flux<String> asyncChat(String message) {
-        return ollamaClient.chat(message)
+        return chatClient.chat(message)
                 .flatMapMany(Flux::just);
     }
 
@@ -68,7 +68,7 @@ public class ChatService implements IChatService {
                 Вопрос: %s
                 """.formatted(contextText, userQuestion);
 
-        return ollamaClient.chat(prompt)
+        return chatClient.chat(prompt)
                 .flatMapMany(Flux::just);
     }
 }
