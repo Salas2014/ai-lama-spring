@@ -26,5 +26,12 @@ public class AiModelConfig {
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
-}
 
+    @Bean(name = "geminiEmbeddingWebClient")
+    public WebClient geminiEmbeddingWebClient() {
+        return WebClient.builder()
+                .baseUrl("https://generativelanguage.googleapis.com/v1")
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+}

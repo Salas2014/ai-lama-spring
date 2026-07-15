@@ -4,18 +4,19 @@ spring:
   autoconfigure:
     exclude:
       - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
+      - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
   ai:
     ollama:
       base-url: http://localhost:11434
       chat:
         model: llama3.2:1b
-      embedding:
-        model: nomic-embed-text
 
     google:
       genai:
         api-key: ${GOOGLE_GEMINI_API_KEY:}
         model: gemini-3.1-flash-lite
+        embedding:
+          model: gemini-embedding-001
 
     vectorstore:
       qdrant:
