@@ -46,3 +46,7 @@ Accept: text/event-stream
 
 #### Test 10: Stream - ollama embed
 GET http://localhost:8888/api/v1/ollama/chat/message=Почему нельзя обновлять сразу много записей?
+
+
+#### analyze file
+GET http://localhost:8888//api/v1/knowledge/topics?file=db.txt

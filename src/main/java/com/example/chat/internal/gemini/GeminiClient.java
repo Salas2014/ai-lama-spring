@@ -3,6 +3,8 @@ package com.example.chat.internal.gemini;
 
 import com.example.chat.internal.config.GeminiProperties;
 import com.example.chat.internal.AiClientInter;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -25,6 +27,7 @@ public class GeminiClient implements AiClientInter {
     private final WebClient webClient;
     private final String model;
     private final String apiKey;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public GeminiClient(WebClient geminiWebClient,
                         GeminiProperties properties) {
@@ -54,10 +57,27 @@ public class GeminiClient implements AiClientInter {
                         resp.bodyToMono(String.class).flatMap(body ->
                                 Mono.error(new RuntimeException("Gemini error " + resp.statusCode() + ": " + body))))
                 .bodyToMono(String.class)
+                .map(this::extractText)
                 .retryWhen(Retry.backoff(5, Duration.ofMillis(500))
                         .maxBackoff(Duration.ofSeconds(30))
                         .filter(throwable -> throwable instanceof WebClientResponseException.TooManyRequests)
                         .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> retrySignal.failure()));
+    }
+
+    /** Извлекает текст из candidates[0].content.parts[0].text */
+    private String extractText(String json) {
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            return root.path("candidates")
+                    .path(0)
+                    .path("content")
+                    .path("parts")
+                    .path(0)
+                    .path("text")
+                    .asText(json); // если структура неожиданная — вернуть исходный JSON
+        } catch (Exception e) {
+            return json;
+        }
     }
 
     @Override

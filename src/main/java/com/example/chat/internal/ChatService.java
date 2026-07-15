@@ -1,7 +1,5 @@
-package com.example.chat.internal.ollama;
+package com.example.chat.internal;
 
-import com.example.chat.internal.AiClientInter;
-import com.example.chat.internal.IChatService;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
