@@ -1,21 +1,23 @@
 services:
-  ollama:
-    image: 'ollama/ollama:latest'
-    ports:
-      - '11434:11434'
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    volumes:
-      - ollama_data:/root/.ollama
-
-  ollama-init:
-    image: 'ollama/ollama:latest'
-    container_name: ollama-init
-    environment:
-      - OLLAMA_HOST=ollama  # Говорим утилите pull стучаться в соседний контейнер
-    depends_on:
-      - ollama
-    entrypoint: [ "sh", "-c", "sleep 5 && ollama pull llama3.2:1b && ollama pull nomic-embed-text" ]
+#  ollama:
+#    image: 'ollama/ollama:latest'
+#    ports:
+#      - '11434:11434'
+#    environment:
+#      - OLLAMA_HOST=0.0.0.0
+#    volumes:
+#      - ollama_data:/root/.ollama
+#
+#  ollama-init:
+#    image: 'ollama/ollama:latest'
+#    container_name: ollama-init
+#    labels:
+#      - "org.springframework.boot.ignore=true"   # Spring Boot не пытается настроить connection details
+#    environment:
+#      - OLLAMA_HOST=ollama  # Говорим утилите pull стучаться в соседний контейнер
+#    depends_on:
+#      - ollama
+#    entrypoint: [ "sh", "-c", "sleep 5 && ollama pull llama3.2:1b" ]
 
   prometheus:
     image: prom/prometheus:latest
