@@ -31,7 +31,6 @@ public class GeminiClient implements AiClientInter {
         this.webClient = geminiWebClient;
         this.model = properties.getModel();
         this.apiKey = properties.getApiKey();
-        System.out.println("GeminiClient initialized with model: " + model + " and API key: " + apiKey);
     }
 
     @Override
